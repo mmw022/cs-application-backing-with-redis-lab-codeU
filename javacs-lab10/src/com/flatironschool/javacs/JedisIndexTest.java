@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.*;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import org.jsoup.select.Elements;
 import org.junit.After;
@@ -46,10 +47,14 @@ public class JedisIndexTest {
 	private static void loadIndex(JedisIndex index) throws IOException {
 		WikiFetcher wf = new WikiFetcher();
 
+      index.deleteTermCounters();
+      index.deleteURLSets();
+      index.deleteAllKeys(); 
+
 		url1 = "https://en.wikipedia.org/wiki/Java_(programming_language)";
 		Elements paragraphs = wf.readWikipedia(url1);
 		index.indexPage(url1, paragraphs);
-		
+      
 		url2 = "https://en.wikipedia.org/wiki/Programming_language";
 		paragraphs = wf.readWikipedia(url2);
 		index.indexPage(url2, paragraphs);

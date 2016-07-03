@@ -67,8 +67,9 @@ public class JedisIndex {
 	 * @return Set of URLs.
 	 */
 	public Set<String> getURLs(String term) {
-        // FILL THIS IN!
-		return null;
+        String redisURL = urlSetKey(term);
+        Set<String> urlSet = jedis.smembers(redisURL);
+		return urlSet;
 	}
 
     /**
@@ -78,8 +79,21 @@ public class JedisIndex {
 	 * @return Map from URL to count.
 	 */
 	public Map<String, Integer> getCounts(String term) {
-        // FILL THIS IN!
-		return null;
+     
+      //Get the URLs in Set format
+      Set<String> urlSet = getURLs(term);
+
+      //Make the map that will eventually store the urls and count
+      Map<String, Integer> urlCount = new HashMap<String, Integer>();
+
+      //Loop throught all the urls associated with a term
+		for (String url: urlSet) {
+
+         //Put the url and the count into the map
+         urlCount.put( url, getCount(url, term) );
+		}
+
+		return urlCount;
 	}
 
     /**
@@ -90,8 +104,15 @@ public class JedisIndex {
 	 * @return
 	 */
 	public Integer getCount(String url, String term) {
-        // FILL THIS IN!
-		return null;
+      //Get the termCounter key of the url
+      String tcKey = termCounterKey( url );
+      
+      //Get the count of the term
+      String count = jedis.hget( tcKey, term );
+      //Make and integer object and return the count
+      Integer termNum = new Integer( count );
+
+		return termNum;
 	}
 
 
@@ -102,7 +123,31 @@ public class JedisIndex {
 	 * @param paragraphs  Collection of elements that should be indexed.
 	 */
 	public void indexPage(String url, Elements paragraphs) {
-        // FILL THIS IN!
+      //Get the termCounter key
+      String hashKey = termCounterKey(url);
+ 
+      //Transaction variable to save time 
+      Transaction t = jedis.multi();
+
+      //Make a new TermCounter and process the paragraph using old code
+      TermCounter tc = new TermCounter(url);
+      tc.processElements(paragraphs);
+       
+      //Get all the keys in the termCounter
+      Set<String> keys = tc.keySet();
+     
+      //Loop through the terms in the termcounter
+      for( String term: keys ) {
+         //Get the index key
+         String setKey = urlSetKey(term);
+
+         //Add the term and count to the jedis termCounter hash
+         t.hset( hashKey, term, Integer.toString(tc.get(term)) );
+         //Add the new url to the jedis set
+         t.sadd( setKey, url );
+      }
+
+      t.exec();
 	}
 
 	/**
